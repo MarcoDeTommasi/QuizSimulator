@@ -1,17 +1,14 @@
 import os
-import sys
-import pandas as pd
-from pathlib import Path
 import random
+import pandas as pd
 from streamlit_js_eval import streamlit_js_eval
-
-
 import streamlit as st
 
 # Set page centered
 st.set_page_config(layout="wide")
 
-# Esempio di utilizzo nel tuo codice
+# Cache the questions
+@st.cache_data
 def retrieve_questions():
     dfs = []
     for element in os.listdir('frontend/data'):
@@ -44,10 +41,22 @@ def main():
     col1, col2 = st.columns([9, 1])  # Configura la larghezza delle colonne
     with col2:
         if st.button("Refresh Quiz 🔄"):
+            st.cache_data.clear()
             streamlit_js_eval(js_expressions="parent.window.location.reload()")
 
     st.divider()
     df = retrieve_questions().reset_index()
+
+    # Salva le risposte mescolate nella sessione
+    if 'shuffled_answers' not in st.session_state:
+        st.session_state['shuffled_answers'] = {
+            index: random.sample(
+                [row['Risposta 1'], row['Risposta 2'], row['Risposta 3'], row['Risposta 4']],
+                4
+            )
+            for index, row in df.iterrows()
+        }
+
     # Organizza il DataFrame per categoria
     categories = df['Titolo'].unique()
 
@@ -55,7 +64,6 @@ def main():
     user_answers = {}
     correct_answers_by_category = {category: 0 for category in categories}  # Per categoria
     total_questions_by_category = {category: 0 for category in categories}  # Totali per categoria
-
 
     # Loop attraverso le categorie
     for category in categories:
@@ -66,9 +74,9 @@ def main():
             # Loop attraverso i quesiti di questa categoria
             for index, row in category_df.iterrows():
                 st.write(f"{index+1}. {row['Quesito']}")
-                # Mescola le risposte in modo casuale
-                answers = [row['Risposta 1'], row['Risposta 2'], row['Risposta 3'], row['Risposta 4']]
-                random.shuffle(answers)
+                
+                # Usa le risposte mescolate dalla sessione
+                answers = st.session_state['shuffled_answers'][index]
 
                 # Aggiungi radio buttons per selezionare una risposta
                 user_answers[f"question_{index}"] = st.radio(
@@ -78,7 +86,6 @@ def main():
                     key=f"question_{index}"
                 )
 
-    
     if st.button("✔️ Submit Risposte"):
         correct_answers_total = 0  # Totale risposte corrette
         total_questions = len(df)  # Numero totale di domande
@@ -119,8 +126,5 @@ def main():
                         st.write(f"**Risposta Fornita**: {question['Risposta Fornita']}")
                         st.write(f"**Risposta Corretta**: {question['Risposta Corretta']}")
 
-        # Stampa sul terminale per debug
-
-    # Esegui l'app
 if __name__ == "__main__":
     main()
