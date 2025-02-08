@@ -14,8 +14,8 @@ st.set_page_config(layout="wide")
 # Esempio di utilizzo nel tuo codice
 def retrieve_questions():
     dfs = []
-    for element in os.listdir('data'):
-        df = pd.read_csv('data/' + element)
+    for element in os.listdir('frontend/data'):
+        df = pd.read_csv('frontend/data/' + element)
         
         # Filtro corretto
         filter_mask = (df['0'] != 'NUMERO ORDINE') & (df['1'] != 'ESITO') & (df['1'] != 'QUESITO') & (df['1'] != 'ELIMINATO')
